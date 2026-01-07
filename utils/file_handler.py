@@ -65,7 +65,7 @@ class FileHandler:
     @staticmethod
     def delete_previous_analysis() -> None:
         """Delete all results from previous analysis (repos, other_versions/extracted, log file, output directory) #deobfuscated_files"""
-        dirs_to_delete = ['other_versions/extracted', 'analysis_results']    # tarballs, deobfuscated_files, repos,  other_versions/extracted
+        dirs_to_delete = ['analysis_results']    # tarballs, deobfuscated_files
         for dir_name in dirs_to_delete:
             dir_path = Path(dir_name)
             if dir_path.exists() and dir_path.is_dir():

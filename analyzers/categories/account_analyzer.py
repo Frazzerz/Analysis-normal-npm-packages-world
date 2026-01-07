@@ -33,9 +33,10 @@ class AccountAnalyzer:
     
     def analyze(self, version: str, git_repo_path: Path, source: SourceType) -> AccountVersion:
         account = AccountVersion()
-        
-        if source in (SourceType.LOCAL, SourceType.DEOBFUSCATED):
-            return account
+        return account  # Temporary return to skip analysis
+    
+        #if source in (SourceType.LOCAL, SourceType.DEOBFUSCATED):
+        #    return account
         '''
         # Get GitHub metrics
         if git_repo_path and source == SourceType.GIT:

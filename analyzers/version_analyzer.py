@@ -1,50 +1,36 @@
 from pathlib import Path
 from typing import List
 import multiprocessing as mp
-from models.composed_metrics import FileMetrics, VersionMetrics, AggregateVersionMetrics
+from models.composed_metrics import FileMetrics, VersionMetrics
 from reporters import CSVReporter, TextReporter
 from utils import FileHandler, synchronized_print, Deobfuscator
 from .aggregate_metrics_by_tag import AggregateMetricsByTag
 from .code_analyzer import CodeAnalyzer
-from comparators import VersionComparator
-from models import CodeType, SourceType
+from models import SourceType
 class VersionAnalyzer:
     """Handles analysis of versions from a Git repository and local versions"""
-    def __init__(self, max_processes: int = 1, include_local: bool = False, local_versions_dir: str = "./other_versions", package_name: str = "", output_dir: Path = Path(".")):
+    def __init__(self, max_processes: int = 1, package_name: str = "", output_dir: Path = Path(".")):
         self.package_name = package_name
         self.output_dir = output_dir
         self.code_analyzer = CodeAnalyzer()
         self.max_processes = max_processes
-        self.include_local = include_local
-        self.local_versions_dir = local_versions_dir
         self.entries = []
-        self.repo = None
-        self.comparator = VersionComparator()
     
     def analyze_versions(self) -> None:
         """Analyze all versions"""
-        if not self.entries and not self.repo:
-            synchronized_print(f"No versions to analyze for {self.package_name} or repository not set")
+        if not self.entries:
+            synchronized_print(f"No versions to analyze for {self.package_name}")
             return
-
-        previous_aggregate_metrics = VersionMetrics()
-        all_aggregate_metrics_by_tag = AggregateVersionMetrics()
-        last_version = "first"
-        count_versions = 0
 
         for i, entry in enumerate(self.entries):
             synchronized_print(f"  [{i+1}/{len(self.entries)}] Analyzing tag {entry.name}")
             try:
-                if entry.source == SourceType.GIT:
-                    self.repo.git.checkout(entry.ref.name, force=True)
-                    repo_path = Path(self.repo.working_tree_dir)
-                if entry.source == SourceType.LOCAL or entry.source == SourceType.TARBALL:
-                    repo_path = entry.ref / "package"  # entry.ref is the path to the extracted local version
+                repo_path = entry.ref / "package"  # entry.ref is the path to the extracted local version
                 
                 # curr_metrics is the list of FileMetrics for all files in the current version
                 # current_metrics e.g. list[FileMetrics(package='example', version='1.0.0', file_path='index.js', ...), FileMetrics(...), ...]
                 curr_metrics = self._analyze_version(entry.name, repo_path, entry.source)
-                
+                '''
                 # Identify obfuscated JS files and attempt deobfuscation
                 obfuscated_files = [f for f in curr_metrics if f.evasion.code_type == CodeType.OBFUSCATED and f.file_path.endswith('.js')]
                 if obfuscated_files:
@@ -68,44 +54,18 @@ class VersionAnalyzer:
                             source=SourceType.DEOBFUSCATED
                         )
                         curr_metrics.append(deob)
-                
+                '''
                 synchronized_print(f"    Analyzed {len(curr_metrics)} files")
                 
                 # aggregate_metrics_by_tag is the aggregation of all metrics from the all files in the current version
                 # aggregate_metrics_by_tag e.g. VersionMetrics(package='example', version='1.0.0', code_types=['Clear', ...], obfuscation_patterns_count=5, ...)
                 aggregate_metrics_by_tag = AggregateMetricsByTag().aggregate_metrics_by_tag(curr_metrics, repo_path, entry.source)
 
-                flags = self.comparator.compare_tags(
-                    all_prev_tag_metrics=all_aggregate_metrics_by_tag,
-                    prev_tag_metrics=previous_aggregate_metrics,
-                    curr_tag_metrics=aggregate_metrics_by_tag,
-                    package=self.package_name,
-                    version=entry.name
-                )
-
-                # all_aggregate_metrics_by_tag is all aggregated metrics for all versions analyzed so far (NO last version included)
-                # is updated incrementally each time, using for identifying flags and to plot the evolution of metrics over versions
-                # all_aggregate_metrics_by_tag e.g. AggregateVersionMetrics(package='example', version='all up to 1.0.0 (included) + 1.1.0 (included)', code_types=['Clear', ...], obfuscation_patterns_count=15, ...)
-                all_aggregate_metrics_by_tag = AggregateMetricsByTag.aggregate_metrics_incremental(
-                    all_aggregate_metrics_by_tag, aggregate_metrics_by_tag, count_versions, last_version)
-                
-                # Update for next iteration
-                count_versions += 1
-                last_version = aggregate_metrics_by_tag.version
-                previous_aggregate_metrics = aggregate_metrics_by_tag
-
                 # Incremental save detailed metrics for the current tag
-                all_metrics_csv = self.output_dir / "all_metrics.csv"
-                flags_csv = self.output_dir / "flags.csv"
-                aggregate_metrics_csv = self.output_dir / "aggregate_metrics_by_tag.csv"
-                aggregate_metrics_history_csv = self.output_dir / "aggregate_metrics_history.csv"
-                flags_summary_txt = self.output_dir / f"{self.package_name.replace('/', '_')}_flags_summary.txt"
-
+                all_metrics_csv = self.output_dir / "file_metrics.csv"
+                aggregate_metrics_csv = self.output_dir / "aggregate_metrics_by_single_version.csv"
                 CSVReporter.save_csv(all_metrics_csv, curr_metrics)
                 CSVReporter.save_csv(aggregate_metrics_csv, aggregate_metrics_by_tag)
-                CSVReporter.save_csv(aggregate_metrics_history_csv, all_aggregate_metrics_by_tag)
-                CSVReporter.save_csv(flags_csv, flags)
-                TextReporter.generate_report(flags_summary_txt, flags)
 
             except Exception as e:
                 synchronized_print(f"Error analyzing tag {entry.name}: {e}")
