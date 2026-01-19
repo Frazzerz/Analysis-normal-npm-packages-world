@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Optional
 import requests
-from .logging_utils import OutputTarget, synchronized_print
+from .logging_utils import synchronized_print
 from models import VersionEntry, SourceType
 
 class NPMClient:
@@ -47,12 +47,12 @@ class NPMClient:
             version_data = data['versions'][version]
             tarball_url = version_data.get('dist', {}).get('tarball', '')
             if not tarball_url:
-                synchronized_print(f"No tarball URL for version {version} of {self.pkg_name}", target=OutputTarget.FILE_ONLY)
+                synchronized_print(f"No tarball URL for version {version} of {self.pkg_name}")
                 continue
 
             tarball_path = pkg_dir / f"{version}.tgz"
             if tarball_path.exists():
-                synchronized_print(f"Tarball already downloaded for {self.pkg_name} version {version}", target=OutputTarget.FILE_ONLY)
+                synchronized_print(f"Tarball already downloaded for {self.pkg_name} version {version}")
                 continue
             
             try:
@@ -63,10 +63,10 @@ class NPMClient:
                 with open(tarball_path, 'wb') as f:
                     f.write(response.content)
                 
-                synchronized_print(f"Downloaded tarball for {self.pkg_name} version {version}", target=OutputTarget.FILE_ONLY)
+                synchronized_print(f"Downloaded tarball for {self.pkg_name} version {version}")
 
             except Exception as e:
-                synchronized_print(f"Error downloading tarball for {self.pkg_name} version {version}: {e}", target=OutputTarget.FILE_ONLY)
+                synchronized_print(f"Error downloading tarball for {self.pkg_name} version {version}: {e}")
 
         synchronized_print(f"Finished downloading tarballs for {self.pkg_name}")        
         extract_dir = download_dir / self.pkg_name.replace('/', '_') / "extracted" 
@@ -76,7 +76,7 @@ class NPMClient:
             tarball_path = pkg_dir / f"{version}.tgz"
             if tarball_path.exists():
                 entries.append(self.extract_tarball(tarball_path, extract_dir))
-        synchronized_print(f"Extracted tarballs for {self.pkg_name}", target=OutputTarget.FILE_ONLY)
+        synchronized_print(f"Extracted tarballs for {self.pkg_name}")
         return entries
 
     def extract_tarball(self, tarball_path: Path, extract_dir: Path) -> VersionEntry:

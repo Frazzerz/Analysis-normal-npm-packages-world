@@ -1,5 +1,5 @@
 from typing import List, Pattern, Tuple
-from utils import synchronized_print, OutputTarget
+from utils import synchronized_print
 import signal
 from tree_sitter import Language, Parser
 import tree_sitter_typescript as tstypescript
@@ -108,12 +108,12 @@ class UtilsForAnalyzer:
                 
             except TimeoutError:
                 signal.alarm(0)
-                synchronized_print(f"    Regex timeout on pattern: {pattern.pattern[:50]}...", OutputTarget.FILE_ONLY)
+                synchronized_print(f"    Regex timeout on pattern: {pattern.pattern[:50]}...")
                 # Continue with other patterns
                 
             except Exception as e:
                 signal.alarm(0)
-                synchronized_print(f"    Regex error: {e}", OutputTarget.FILE_ONLY)
+                synchronized_print(f"    Regex error: {e}")
 
         return len(matches), matches
     

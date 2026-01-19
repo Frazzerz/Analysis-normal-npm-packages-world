@@ -3,7 +3,7 @@ from typing import List
 import json
 import shutil
 import os
-from utils.logging_utils import OutputTarget, synchronized_print
+from utils.logging_utils import synchronized_print
 
 '''
 class TooManyFilesError(Exception):
@@ -39,10 +39,10 @@ class FileHandler:
         try:
             return file_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            synchronized_print(f"   Non-UTF8 file, skipped: {file_path.name}", target=OutputTarget.FILE_ONLY)
+            synchronized_print(f"   Non-UTF8 file, skipped: {file_path.name}")
             return ""
         except Exception as e:
-            synchronized_print(f"Error reading {file_path}: {e}", target=OutputTarget.FILE_ONLY)
+            synchronized_print(f"Error reading {file_path}: {e}")
             return ""
 
     @staticmethod

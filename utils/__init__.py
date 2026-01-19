@@ -1,6 +1,6 @@
 from .npm_client import NPMClient
 from .file_handler import FileHandler
-from .logging_utils import synchronized_print, setup_logging, TeeOutput, OutputTarget
+from .logging_utils import synchronized_print, setup_logging, close_logging
 from .utils_for_analyzer import UtilsForAnalyzer
 from .file_type_detector import FileTypeDetector
 
@@ -9,8 +9,7 @@ __all__ = [
     'FileHandler',
     'synchronized_print',
     'setup_logging',
-    'OutputTarget',
-    'TeeOutput',
+    'close_logging',
     'UtilsForAnalyzer',
     'FileTypeDetector',
 ]
