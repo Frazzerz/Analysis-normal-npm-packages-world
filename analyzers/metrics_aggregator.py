@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List
 from models.composed_metrics import FileMetrics, VersionMetrics
-from utils import FileTypeDetector, synchronized_print
+from utils import synchronized_print
+from models import CodeType
 
 class MetricsAggregator:
     """Aggregates file-level metrics into version-level metrics"""
@@ -49,20 +50,26 @@ class MetricsAggregator:
         vm.generic.total_number_of_characters += fm.generic.number_of_characters
         vm.generic.total_number_of_characters_no_comments += fm.generic.number_of_characters_no_comments
         
-        if FileTypeDetector.is_valid_file_for_analysis(fm.generic.file_type):
+        if fm.generic.is_plain_text_file:
             vm.generic.total_plain_text_files += 1
             vm.generic.total_dim_plain_text_files += fm.generic.size_bytes
         else:
             vm.generic.total_other_files += 1
             vm.generic.total_dim_bytes_other_files += fm.generic.size_bytes
+            vm.generic.list_other_files.append(fm.file_path)
         
         vm.generic.total_number_of_non_blank_lines += fm.generic.total_number_of_non_blank_lines
         vm.generic.total_number_of_comments += fm.generic.number_of_comments
         vm.generic.total_number_of_non_blank_lines_no_comments += fm.generic.number_of_non_blank_lines_no_comments
         
-        if fm.file_path != "README.md":
-            vm.generic.longest_line_length_no_comments = max(
-                vm.generic.longest_line_length_no_comments,
+        if fm.generic.code_type == CodeType.MINIFIED:
+            vm.generic.longest_line_length_no_comments_including_minified = max(
+                vm.generic.longest_line_length_no_comments_including_minified,
+                fm.generic.longest_line_length_no_comments
+            )
+        elif fm.file_path != "README.md":
+            vm.generic.longest_line_length_no_comments_no_minified = max(
+                vm.generic.longest_line_length_no_comments_no_minified,
                 fm.generic.longest_line_length_no_comments
             )
         

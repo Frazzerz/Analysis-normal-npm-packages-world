@@ -19,30 +19,31 @@ class PayloadAnalyzer:
     ]
     
     EVAL_PATTERNS: List[Pattern] = [re.compile(r'eval\s*\([\s\S]*?\)')]
-    
-    SHELL_COMMANDS_PATTERNS: List[Pattern] = [
-        # obj.exec(command, args)
-        # Bun is a JavaScript runtime similar to Node.js, and it has a function to execute system commands
-        # await Bun.$`command`
-        # Not to be confused with RegExp.exec(), which is a method for searching for patterns in a string
-        re.compile(
-            r'(?:'
-            r'(?:child_process|exec|spawn|shell)\.exec\s*\(\s*\w{1,50}\s*,\s*\w{1,50}\s*\)|'  # Limit \w+
-            r'\w{0,50}\s*Bun\.\$\s*`[^`]{0,200}`'  # Limit backtick content
-            r')',
-            re.IGNORECASE
-        )
-    ]
+
+    # obj.exec(command, args)
+    # Not to be confused with RegExp.exec(), which is a method for searching for patterns in a string
+    SHELL_EXEC_PATTERN = re.compile(
+        r'(?:child_process|exec|spawn|shell)\.exec\s*\(\s*\w{1,25}\s*,\s*\w{1,25}\s*\)',    # Limit \w+
+        re.IGNORECASE
+    )
+    # Bun is a JavaScript runtime similar to Node.js, and it has a function to execute system commands
+    # await Bun.$`command`
+    BUN_PATTERN = re.compile(
+        r'\w{0,10}\s*Bun\.\$\s*`[^`]{0,10}`',   # Limit backtick content
+        re.IGNORECASE
+    )
+    SHELL_COMMANDS_PATTERNS = [SHELL_EXEC_PATTERN, BUN_PATTERN]
+
     '''
-        re.compile(
-            r'(?:'
-            #r'(\w+)?.?exec\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)|'                                     # Original
-            #r'(?!(?:RegExp|re|regexp)\.exec\b)(\w+)?\.?exec\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)|'    # Explicit avoid matching RegExp.exec
-            r'(?:child_process|exec|spawn|shell)\.exec\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)|'          # Whitelist
-            r'(\w+)?\s*Bun\.\$\s*\`[\s\S]*?\`'
-            r')',
-            re.IGNORECASE
-        )
+    re.compile(
+        r'(?:'
+        #r'(\w+)?.?exec\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)|'                                     # Original
+        #r'(?!(?:RegExp|re|regexp)\.exec\b)(\w+)?\.?exec\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)|'    # Explicit avoid matching RegExp.exec
+        r'(?:child_process|exec|spawn|shell)\.exec\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)|'          # Whitelist
+        r'(\w+)?\s*Bun\.\$\s*\`[\s\S]*?\`'
+        r')',
+        re.IGNORECASE
+    )
     '''
 
     PREINSTALL_PATTERNS: List[Pattern] = [re.compile(r'"preinstall"\s*:\s*"[^"]*"\s*,?', re.IGNORECASE)]    # [^"]*  Any text between quotes

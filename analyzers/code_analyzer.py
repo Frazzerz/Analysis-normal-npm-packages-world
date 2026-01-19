@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 from .categories import EvasionAnalyzer, PayloadAnalyzer, ExfiltrationAnalyzer, CryptojackingAnalyzer, GenericAnalyzer
 from models.composed_metrics import FileMetrics
 from utils import FileHandler, synchronized_print, FileTypeDetector, UtilsForAnalyzer
+import jsbeautifier
 
 class CodeAnalyzer:
     """Coordinates analysis across all categories"""
@@ -29,6 +30,7 @@ class CodeAnalyzer:
             synchronized_print(f"   Skipping non-valid file: {file_path.name} (type: {file_type})")
             metrics.generic.file_type = file_type
             metrics.generic.size_bytes = size_bytes
+            metrics.generic.is_plain_text_file = False
             return metrics
         
         content = FileHandler().read_file(file_path)
@@ -36,13 +38,14 @@ class CodeAnalyzer:
             synchronized_print(f"   Empty content: {file_path.name}")
             metrics.generic.file_type = file_type
             metrics.generic.size_bytes = size_bytes
+            metrics.generic.is_plain_text_file = False
             return metrics
         
         # Pre-process content
         processed_content, pre_metrics = self._preprocess_content(content, file_path, file_type)
         
         # Analyze all categories
-        metrics.generic = self.generic_analyzer.analyze( processed_content, *pre_metrics)
+        metrics.generic = self.generic_analyzer.analyze(processed_content, *pre_metrics)
         
         metrics.evasion = self.evasion_analyzer.analyze(processed_content, metrics.generic)
         metrics.payload = self.payload_analyzer.analyze(processed_content, package_info)
@@ -58,7 +61,7 @@ class CodeAnalyzer:
         # Check if minified and unminify if necessary
         minified = self.generic_analyzer.pre_analyze(content)
         if minified:
-            content = self.generic_analyzer.unminify_code(content)
+            content = self.unminify_code(content)
         
         # Get pre-metrics for JS-like files
         if FileTypeDetector.is_js_like_file(file_type):
@@ -79,3 +82,8 @@ class CodeAnalyzer:
         
         # For non-JS files, return zeros
         return content, (0, 0, 0, 0.0, 0, 0, 0, minified)
+    
+    @staticmethod
+    def unminify_code(content: str) -> str:
+        """Attempt to unminify code"""
+        return jsbeautifier.beautify(content)

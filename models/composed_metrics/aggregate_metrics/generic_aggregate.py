@@ -11,6 +11,7 @@ class GenericVersion:
     total_plain_text_files: int = 0                             # to be computed after aggregation
     total_dim_plain_text_files: int = 0                         # to be computed after aggregation
     total_other_files: int = 0                                  # to be computed after aggregation
+    list_other_files: List[str] = field(default_factory=list)
     total_dim_bytes_other_files: int = 0                        # to be computed after aggregation
 
     total_number_of_characters: int = 0                         # All characters including comments, number_of_characters
@@ -19,7 +20,8 @@ class GenericVersion:
     
     total_number_of_characters_no_comments: int = 0             # All characters excluding comments
     total_number_of_non_blank_lines_no_comments: int = 0        # No comments, no blank lines
-    longest_line_length_no_comments: int = 0
+    longest_line_length_no_comments_including_minified: int = 0 # to be computed after aggregation
+    longest_line_length_no_comments_no_minified: int = 0        # to be computed after aggregation
     code_types: List[CodeType] = field(default_factory=list)
     len_list_code_types_unique: int = 0                         # to be computed after aggregation
 

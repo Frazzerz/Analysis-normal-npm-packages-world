@@ -2,7 +2,6 @@ import math
 from typing import Tuple
 from models.domains import GenericMetrics
 from models import CodeType
-import jsbeautifier
 
 class GenericAnalyzer:
     """Obtain generic metrics from files"""
@@ -75,6 +74,7 @@ class GenericAnalyzer:
         )
         
         metrics.code_type = CodeType.MINIFIED if minified else CodeType.CLEAR
+        metrics.is_plain_text_file = True
         
         return metrics
 
@@ -109,8 +109,3 @@ class GenericAnalyzer:
     def _detect_minified_code(self, longest_line: int, num_lines: int) -> bool:
         """Detect if code is minified"""
         return longest_line > 500 and num_lines < 5
-    
-    @staticmethod
-    def unminify_code(content: str) -> str:
-        """Attempt to unminify code"""
-        return jsbeautifier.beautify(content)

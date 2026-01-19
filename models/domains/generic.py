@@ -3,6 +3,7 @@ from ..code_type import CodeType
 @dataclass
 class GenericMetrics:
     file_type: str = ""                                         # Magika detect file type
+    is_plain_text_file: bool = False                            # Valid file for analysis
     size_bytes: int = 0
     
     number_of_characters: int = 0                               # All characters including comments and blank characters
