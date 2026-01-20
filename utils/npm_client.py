@@ -61,7 +61,7 @@ class NPMClient:
 
         pkg_dir = download_dir / self.pkg_name.replace('/', '_')
         pkg_dir.mkdir(parents=True, exist_ok=True)
-        synchronized_print(f"Downloading tarballs for {self.pkg_name} {len(versions)} versions...")
+        #synchronized_print(f"Downloading tarballs for {self.pkg_name} {len(versions)} versions...")
 
         for version in versions:
             version_data = data['versions'][version]
@@ -72,7 +72,7 @@ class NPMClient:
 
             tarball_path = pkg_dir / f"{version}.tgz"
             if tarball_path.exists():
-                synchronized_print(f"Tarball already downloaded for {self.pkg_name} version {version}")
+                #synchronized_print(f"Tarball already downloaded for {self.pkg_name} version {version}")
                 continue
             
             try:
@@ -96,7 +96,7 @@ class NPMClient:
             tarball_path = pkg_dir / f"{version}.tgz"
             if tarball_path.exists():
                 entries.append(self.extract_tarball(tarball_path, extract_dir))
-        synchronized_print(f"Extracted tarballs for {self.pkg_name}")
+        #synchronized_print(f"Extracted tarballs for {self.pkg_name}")
         return entries
 
     def extract_tarball(self, tarball_path: Path, extract_dir: Path) -> VersionEntry:

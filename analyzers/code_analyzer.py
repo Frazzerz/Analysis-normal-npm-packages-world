@@ -26,7 +26,7 @@ class CodeAnalyzer:
         size_bytes = file_path.stat().st_size
         
         if not FileTypeDetector.is_valid_file_for_analysis(file_type):
-            synchronized_print(f"   Skipping non-valid file: {file_path.name} (type: {file_type})")
+            #synchronized_print(f"   Skipping non-valid file: {file_path.name} (type: {file_type})")
             metrics.generic.file_type = file_type
             metrics.generic.size_bytes = size_bytes
             metrics.generic.is_plain_text_file = False
