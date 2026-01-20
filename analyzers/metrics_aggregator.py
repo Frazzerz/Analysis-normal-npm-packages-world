@@ -19,11 +19,11 @@ class MetricsAggregator:
         version_metrics.version = metrics_list[0].version
         
         # Calculate totals first (needed for weighted averages)
-        total_chars, total_chars_nc = MetricsAggregator._calculate_character_totals(metrics_list)
+        total_chars, total_chars_nc, total_chars_nc_minified, total_chars_nc_no_minified, total_chars_nc_with_unminified, total_chars_nc_only_unminified = MetricsAggregator._calculate_character_totals(metrics_list)
         
         # Aggregate all metrics
         for fm in metrics_list:
-            MetricsAggregator._aggregate_generic_metrics(version_metrics, fm, total_chars, total_chars_nc)
+            MetricsAggregator._aggregate_generic_metrics(version_metrics, fm, total_chars, total_chars_nc, total_chars_nc_minified, total_chars_nc_no_minified, total_chars_nc_with_unminified, total_chars_nc_only_unminified)
             MetricsAggregator._aggregate_evasion_metrics(version_metrics, fm)
             MetricsAggregator._aggregate_payload_metrics(version_metrics, fm)
             MetricsAggregator._aggregate_exfiltration_metrics(version_metrics, fm)
@@ -35,14 +35,32 @@ class MetricsAggregator:
         return version_metrics
     
     @staticmethod
-    def _calculate_character_totals(metrics_list: List[FileMetrics]) -> tuple[int, int]:
-        """Calculate total characters for weighted averages"""
+    def _calculate_character_totals(metrics_list: List[FileMetrics]) -> tuple[int, int, int, int, int, int]:
         total_chars = sum(fm.generic.number_of_characters for fm in metrics_list)
         total_chars_nc = sum(fm.generic.number_of_characters_no_comments for fm in metrics_list)
-        return total_chars, total_chars_nc
+        total_chars_nc_minified = sum(
+            fm.generic.number_of_characters_no_comments
+            for fm in metrics_list
+            if fm.generic.code_type == CodeType.MINIFIED
+        )
+        total_chars_nc_no_minified = sum(
+            fm.generic.number_of_characters_no_comments
+            for fm in metrics_list
+            if fm.generic.code_type != CodeType.MINIFIED
+        )
+
+        total_chars_nc_with_unminified = sum(
+            fm.generic.number_of_characters_no_comments
+            if fm.generic.code_type != CodeType.MINIFIED
+            else fm.generic.number_of_characters_no_comments_unminified
+            for fm in metrics_list
+        )
+        total_chars_nc_only_unminified = sum(fm.generic.number_of_characters_no_comments_unminified for fm in metrics_list)
+
+        return total_chars, total_chars_nc, total_chars_nc_minified, total_chars_nc_no_minified, total_chars_nc_with_unminified, total_chars_nc_only_unminified
     
     @staticmethod
-    def _aggregate_generic_metrics(vm: VersionMetrics, fm: FileMetrics, total_chars: int, total_chars_nc: int):
+    def _aggregate_generic_metrics(vm: VersionMetrics, fm: FileMetrics, total_chars: int, total_chars_nc: int, total_chars_nc_minified: int, total_chars_nc_no_minified: int, total_chars_nc_with_unminified: int, total_chars_nc_only_unminified: int):
         """Aggregate generic metrics"""
         vm.generic.total_files += 1
         vm.generic.list_file_types.append(fm.generic.file_type)
@@ -53,6 +71,7 @@ class MetricsAggregator:
         if fm.generic.is_plain_text_file:
             vm.generic.total_plain_text_files += 1
             vm.generic.total_dim_plain_text_files += fm.generic.size_bytes
+            vm.generic.list_plain_text_files.append(fm.file_path)
         else:
             vm.generic.total_other_files += 1
             vm.generic.total_dim_bytes_other_files += fm.generic.size_bytes
@@ -62,16 +81,25 @@ class MetricsAggregator:
         vm.generic.total_number_of_comments += fm.generic.number_of_comments
         vm.generic.total_number_of_non_blank_lines_no_comments += fm.generic.number_of_non_blank_lines_no_comments
         
-        if fm.generic.code_type == CodeType.MINIFIED:
-            vm.generic.longest_line_length_no_comments_including_minified = max(
-                vm.generic.longest_line_length_no_comments_including_minified,
+        if fm.file_path != "README.md":
+            vm.generic.longest_line_length_no_comments = max(
+                vm.generic.longest_line_length_no_comments,
                 fm.generic.longest_line_length_no_comments
             )
-        elif fm.file_path != "README.md":
-            vm.generic.longest_line_length_no_comments_no_minified = max(
-                vm.generic.longest_line_length_no_comments_no_minified,
-                fm.generic.longest_line_length_no_comments
-            )
+            if fm.generic.code_type == CodeType.MINIFIED:
+                vm.generic.longest_line_length_no_comments_only_minified = max(
+                    vm.generic.longest_line_length_no_comments_only_minified,
+                    fm.generic.longest_line_length_no_comments
+                )
+                vm.generic.total_number_of_printable_characters_no_comments_only_minified += fm.generic.number_of_printable_characters_no_comments
+                vm.generic.total_number_of_whitespace_characters_no_comments_only_minified += fm.generic.number_of_whitespace_characters_no_comments
+            else:
+                vm.generic.longest_line_length_no_comments_no_minified = max(
+                    vm.generic.longest_line_length_no_comments_no_minified,
+                    fm.generic.longest_line_length_no_comments
+                )
+                vm.generic.total_number_of_printable_characters_no_comments_no_minified += fm.generic.number_of_printable_characters_no_comments
+                vm.generic.total_number_of_whitespace_characters_no_comments_no_minified += fm.generic.number_of_whitespace_characters_no_comments
         
         vm.generic.code_types.append(fm.generic.code_type)
         vm.generic.total_number_of_printable_characters += fm.generic.number_of_printable_characters
@@ -89,6 +117,48 @@ class MetricsAggregator:
             weight_nc = fm.generic.number_of_characters_no_comments / total_chars_nc
             vm.generic.weighted_avg_shannon_entropy_no_comments += fm.generic.shannon_entropy_no_comments * weight_nc
             vm.generic.weighted_avg_blank_space_and_character_ratio_no_comments += fm.generic.blank_space_and_character_ratio_no_comments * weight_nc
+
+        if total_chars_nc_with_unminified > 0:
+            vm.generic.weighted_avg_shannon_entropy_no_comments_with_unminified += (
+                fm.generic.shannon_entropy_no_comments_unminified if fm.generic.code_type == CodeType.MINIFIED
+                else fm.generic.shannon_entropy_no_comments
+            ) * (fm.generic.number_of_characters_no_comments if fm.generic.code_type == CodeType.MINIFIED
+                else fm.generic.number_of_characters_no_comments) / total_chars_nc_with_unminified
+
+            vm.generic.weighted_avg_blank_space_and_character_ratio_no_comments_with_unminified += (
+                fm.generic.blank_space_and_character_ratio_no_comments if fm.generic.code_type == CodeType.MINIFIED
+                else fm.generic.blank_space_and_character_ratio_no_comments
+            ) * (fm.generic.number_of_characters_no_comments if fm.generic.code_type == CodeType.MINIFIED
+                else fm.generic.number_of_characters_no_comments) / total_chars_nc_with_unminified
+
+            if fm.generic.code_type == CodeType.MINIFIED:
+                if total_chars_nc_minified > 0:
+                    weight_min = fm.generic.number_of_characters_no_comments / total_chars_nc_minified
+                    
+                    vm.generic.weighted_avg_shannon_entropy_no_comments_only_minified += (
+                        fm.generic.shannon_entropy_no_comments * weight_min
+                    )
+                    vm.generic.weighted_avg_blank_space_and_character_ratio_no_comments_only_minified += (
+                        fm.generic.blank_space_and_character_ratio_no_comments * weight_min
+                    )
+
+                if total_chars_nc_only_unminified > 0:
+                    weight_unmin = fm.generic.number_of_characters_no_comments_unminified / total_chars_nc_only_unminified
+                    vm.generic.weighted_avg_shannon_entropy_no_comments_only_unminified += (
+                        fm.generic.shannon_entropy_no_comments_unminified * weight_unmin
+                    )
+                    vm.generic.weighted_avg_blank_space_and_character_ratio_no_comments_only_unminified += (
+                        fm.generic.blank_space_and_character_ratio_no_comments * weight_unmin
+                    )
+            else:
+                if total_chars_nc_no_minified > 0:
+                    weight_nom = fm.generic.number_of_characters_no_comments / total_chars_nc_no_minified
+                    vm.generic.weighted_avg_shannon_entropy_no_comments_no_minified += (
+                        fm.generic.shannon_entropy_no_comments * weight_nom
+                    )
+                    vm.generic.weighted_avg_blank_space_and_character_ratio_no_comments_no_minified += (
+                        fm.generic.blank_space_and_character_ratio_no_comments * weight_nom
+                    )
     
     @staticmethod
     def _aggregate_evasion_metrics(vm: VersionMetrics, fm: FileMetrics):
@@ -160,7 +230,3 @@ class MetricsAggregator:
         vm.exfiltration.len_list_data_transmissions_unique = len(vm.exfiltration.list_data_transmissions)
         vm.crypto.len_list_crypto_addresses_unique = len(vm.crypto.list_crypto_addresses)
         vm.crypto.len_list_cryptocurrency_names_unique = len(vm.crypto.list_cryptocurrency_names)
-        
-        # Compute deltas
-        vm.generic.entropy_delta = vm.generic.weighted_avg_shannon_entropy_original - vm.generic.weighted_avg_shannon_entropy_no_comments
-        vm.generic.blank_space_ratio_delta = vm.generic.weighted_avg_blank_space_and_character_ratio_original - vm.generic.weighted_avg_blank_space_and_character_ratio_no_comments

@@ -3,7 +3,6 @@ from typing import Dict, Tuple
 from .categories import EvasionAnalyzer, PayloadAnalyzer, ExfiltrationAnalyzer, CryptojackingAnalyzer, GenericAnalyzer
 from models.composed_metrics import FileMetrics
 from utils import FileHandler, synchronized_print, FileTypeDetector, UtilsForAnalyzer
-import jsbeautifier
 
 class CodeAnalyzer:
     """Coordinates analysis across all categories"""
@@ -46,7 +45,6 @@ class CodeAnalyzer:
         
         # Analyze all categories
         metrics.generic = self.generic_analyzer.analyze(processed_content, *pre_metrics)
-        
         metrics.evasion = self.evasion_analyzer.analyze(processed_content, metrics.generic)
         metrics.payload = self.payload_analyzer.analyze(processed_content, package_info)
         metrics.exfiltration = self.exfiltration_analyzer.analyze(processed_content)
@@ -57,12 +55,7 @@ class CodeAnalyzer:
         return metrics
     
     def _preprocess_content(self, content: str, file_path: Path, file_type: str) -> Tuple[str, Tuple]:
-        """Preprocess content: unminify if needed, extract metrics, remove comments"""
-        # Check if minified and unminify if necessary
-        minified = self.generic_analyzer.pre_analyze(content)
-        if minified:
-            content = self.unminify_code(content)
-        
+        """Preprocess content: extract metrics and remove comments"""
         # Get pre-metrics for JS-like files
         if FileTypeDetector.is_js_like_file(file_type):
             pre_metrics = self.generic_analyzer.pre_analyze_js(content)
@@ -77,13 +70,7 @@ class CodeAnalyzer:
                 ws_ratio,
                 num_ws,
                 num_printable,
-                minified
             )
         
-        # For non-JS files, return zeros
-        return content, (0, 0, 0, 0.0, 0, 0, 0, minified)
-    
-    @staticmethod
-    def unminify_code(content: str) -> str:
-        """Attempt to unminify code"""
-        return jsbeautifier.beautify(content)
+        # For non-JS files, i don't remove comments, i analyze this later
+        return content, (0, 0, 0, 0.0, 0, 0, 0)
