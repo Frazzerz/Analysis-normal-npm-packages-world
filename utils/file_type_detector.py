@@ -28,6 +28,7 @@ class FileTypeDetector:
 
         # Readme.md
         'markdown',
+        'empty',
     }
     
     @classmethod

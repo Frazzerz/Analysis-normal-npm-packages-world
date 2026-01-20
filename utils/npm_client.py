@@ -22,20 +22,19 @@ class NPMClient:
             return None
         
     def get_last_20_valid_versions(self, data: dict) -> list[str]:
-        valid_versions = []
+        parsed_versions = []
 
         for v in data["versions"].keys():
             try:
-                valid_versions.append(Version(v))
+                parsed_versions.append((Version(v), v))  # (parsed, original)
             except InvalidVersion:
-                # discard versions that are not always compatible
                 continue
 
-        if len(valid_versions) < 20:
+        if len(parsed_versions) < 20:
             return []
 
-        valid_versions.sort()
-        return [str(v) for v in valid_versions[-20:]]
+        parsed_versions.sort(key=lambda x: x[0])
+        return [orig for _, orig in parsed_versions[-20:]]
         
     def download_package_versions_tarball(self, download_dir: Path = Path("tarballs")) -> list[VersionEntry]:
         """Download the tarball for 20 lastest versions of the package from NPM registry"""

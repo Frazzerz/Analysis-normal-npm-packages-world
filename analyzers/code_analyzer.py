@@ -34,10 +34,10 @@ class CodeAnalyzer:
         
         content = FileHandler().read_file(file_path)
         if not content:
-            synchronized_print(f"   Empty content: {file_path.name}")
+            #ynchronized_print(f"   Empty content: {file_path.name}")
             metrics.generic.file_type = file_type
             metrics.generic.size_bytes = size_bytes
-            metrics.generic.is_plain_text_file = False
+            metrics.generic.is_plain_text_file = True # empty file is still plain text, nothing change, i don't count as other file types
             return metrics
         
         # Pre-process content
