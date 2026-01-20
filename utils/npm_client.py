@@ -30,11 +30,11 @@ class NPMClient:
             except InvalidVersion:
                 continue
 
-        if len(parsed_versions) < 20:
+        if len(parsed_versions) < 20:   #19
             return []
 
         parsed_versions.sort(key=lambda x: x[0])
-        return [orig for _, orig in parsed_versions[-20:]]
+        return [orig for _, orig in parsed_versions[-20:]]  #19
         
     def download_package_versions_tarball(self, download_dir: Path = Path("tarballs")) -> list[VersionEntry]:
         """Download the tarball for 20 lastest versions of the package from NPM registry"""
@@ -53,7 +53,6 @@ class NPMClient:
         
         if len(data['versions']) >= 20:
             synchronized_print(f"Found {len(data['versions'])} versions for {self.pkg_name}, but i consider only the last 20")
-        #versions = list(data['versions'].keys())[-20:] # Get the last 20 versions. If more exist, no error
         versions = self.get_last_20_valid_versions(data)
 
         if not versions:
