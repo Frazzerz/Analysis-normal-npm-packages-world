@@ -11,24 +11,17 @@ class FileTypeDetector:
     VALID_TYPES = {
         # Executable code / scripts
         'javascript', 'typescript', 'coffeescript',
-        'jsx', 'tsx', 'vue',
-        'bash', 'shell', 'powershell',
-        'python', 'ruby', 'php', 'perl', 'lua',
-        'go', 'rust', 'java', 'kotlin', 'scala', 'swift',
-        'c', 'cpp', 'csharp', 'objectivec',
-        'solidity', 'zig', 'nim', 'haskell', 'txt',
+        'shell', 'txt',
+        'c', 'cpp', 'python', 'ruby', 'php', 'lua', 
         
         # Config, manifest, build/deploy scripts
         'json', 'jsonl',
         'yaml', 'toml', 'ini', 'xml',
-        'hcl',
-        'dockerfile', 'makefile', 'cmake', 'gradle', 'bazel',
+        'dockerfile', 'makefile', 'cmake',
         'gitmodules', 'gitattributes',
-        'npmrc',
-
+        
         # Readme.md
-        'markdown',
-        'empty',
+        'markdown', 'empty',
     }
     
     @classmethod
@@ -40,10 +33,7 @@ class FileTypeDetector:
     
     @classmethod
     def detect_file_type(cls, file_path: Path) -> str:
-        """
-        Detect file type using Magika
-        Returns the detected file type label (e.g., 'javascript', 'zip', 'png')
-        """
+        """Detect file type using Magika. Returns the detected file type label (e.g., 'javascript', 'zip', 'png')"""
         try:
             magika = cls.get_magika()
             result = magika.identify_path(file_path)
@@ -60,4 +50,4 @@ class FileTypeDetector:
     @classmethod
     def is_js_like_file(cls, file_type: str) -> bool:
         """Check if the file type is JavaScript or similar (for comment removal)"""
-        return file_type.lower() in {'javascript', 'typescript', 'jsx', 'tsx'}
+        return file_type.lower() in {'javascript', 'typescript'}
